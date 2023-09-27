@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -7,44 +7,43 @@ namespace Complete
 {
     public class GameManager : MonoBehaviour
     {
-        public int m_NumRoundsToWin = 5;            // The number of rounds a single player has to win to win the game.
-        public float m_StartDelay = 3f;             // The delay between the start of RoundStarting and RoundPlaying phases.
-        public float m_EndDelay = 3f;               // The delay between the end of RoundPlaying and RoundEnding phases.
-        public CameraControl m_CameraControl;       // Reference to the CameraControl script for control during different phases.
-        public Text m_MessageText;                  // Reference to the overlay Text to display winning text, etc.
-        public GameObject m_TankPrefab;             // Reference to the prefab the players will control.
-        public TankManager[] m_Tanks;               // A collection of managers for enabling and disabling different aspects of the tanks.
+        public int m_NumRoundsToWin = 5;            // Số vòng người chơi thắng để thắng trò chơi
+        public float m_StartDelay = 3f;             // Thời gian chờ khi bắt đầu
+        public float m_EndDelay = 3f;               // Thời gian chờ khi kết thúc 
+        public CameraControl m_CameraControl;       // Tham chiếu đến CameraControl
+        public Text m_MessageText;                  // Tham chiếu đến Text Thông báo
+        public GameObject m_TankPrefab;             // Tham chiếu đến Tank người dùng sử dụng 
+        public TankManager[] m_Tanks;               // Tham chiếu đến TankManager
 
         
-        private int m_RoundNumber;                  // Which round the game is currently on.
-        private WaitForSeconds m_StartWait;         // Used to have a delay whilst the round starts.
-        private WaitForSeconds m_EndWait;           // Used to have a delay whilst the round or game ends.
-        private TankManager m_RoundWinner;          // Reference to the winner of the current round.  Used to make an announcement of who won.
-        private TankManager m_GameWinner;           // Reference to the winner of the game.  Used to make an announcement of who won.
+        private int m_RoundNumber;                  // Số vòng chơi hiện tại
+        private WaitForSeconds m_StartWait;         // Thời gian chờ khi bắt đầu 
+        private WaitForSeconds m_EndWait;           // Thời gian chờ khi kết thúc
+        private TankManager m_RoundWinner;          // Tham chiếu đến số vòng thắng của người chơi
+        private TankManager m_GameWinner;           // Tham chiếu đến thông báo người chơi chiến thắng 
 
 
         private void Start()
         {
-            // Create the delays so they only have to be made once.
+            //Tạo thời gian chờ
             m_StartWait = new WaitForSeconds (m_StartDelay);
             m_EndWait = new WaitForSeconds (m_EndDelay);
 
             SpawnAllTanks();
             SetCameraTargets();
 
-            // Once the tanks have been created and the camera is using them as targets, start the game.
+            // Khi xe tank được khởi tạo camera sẽ theo tank và bắt đầu trò chơi
             StartCoroutine (GameLoop ());
         }
 
 
         private void SpawnAllTanks()
         {
-            // For all the tanks...
+            // Tạo Tank
             for (int i = 0; i < m_Tanks.Length; i++)
             {
-                // ... create them, set their player number and references needed for control.
-                m_Tanks[i].m_Instance =
-                    Instantiate(m_TankPrefab, m_Tanks[i].m_SpawnPoint.position, m_Tanks[i].m_SpawnPoint.rotation) as GameObject;
+                // Khởi tạo và cho vị trí của người chơi tương ứng
+                m_Tanks[i].m_Instance = Instantiate(m_TankPrefab, m_Tanks[i].m_SpawnPoint.position, m_Tanks[i].m_SpawnPoint.rotation) as GameObject;
                 m_Tanks[i].m_PlayerNumber = i + 1;
                 m_Tanks[i].Setup();
             }
@@ -53,43 +52,42 @@ namespace Complete
 
         private void SetCameraTargets()
         {
-            // Create a collection of transforms the same size as the number of tanks.
+            // Tạo 1 mảng các transform có cùng kích thước với tank
             Transform[] targets = new Transform[m_Tanks.Length];
 
-            // For each of these transforms...
+            // Với mỗi thứ tự trong mảng
             for (int i = 0; i < targets.Length; i++)
             {
-                // ... set it to the appropriate tank transform.
+                // Đặt giá trị cho xe tank tương ứng
                 targets[i] = m_Tanks[i].m_Instance.transform;
             }
 
-            // These are the targets the camera should follow.
+            // Mục tiêu camera theo dõi
             m_CameraControl.m_Targets = targets;
         }
 
 
-        // This is called from start and will run each phase of the game one after another.
+        // Gọi nó khi mỗi lần bắt đầu game
         private IEnumerator GameLoop ()
         {
-            // Start off by running the 'RoundStarting' coroutine but don't return until it's finished.
+            // Bắt đầu với RoundStarting 
             yield return StartCoroutine (RoundStarting ());
 
-            // Once the 'RoundStarting' coroutine is finished, run the 'RoundPlaying' coroutine but don't return until it's finished.
+            // Sau khi RoundStarting chạy xong thì đến RoundPlaying
             yield return StartCoroutine (RoundPlaying());
 
-            // Once execution has returned here, run the 'RoundEnding' coroutine, again don't return until it's finished.
+            // Say khi xong ván game thì chạy tiếp RoundEnding
             yield return StartCoroutine (RoundEnding());
 
-            // This code is not run until 'RoundEnding' has finished.  At which point, check if a game winner has been found.
+            // Khi nào chạy xong hết dòng trên thì sẽ kiểm tra xem đã có ai thắng chưa
             if (m_GameWinner != null)
             {
-                // If there is a game winner, restart the level.
+                // Nếu có người chơi thắng thì sẽ load lại Scene
                 SceneManager.LoadScene (0);
             }
             else
             {
-                // If there isn't a winner yet, restart this coroutine so the loop continues.
-                // Note that this coroutine doesn't yield.  This means that the current version of the GameLoop will end.
+                //Nếu có người chơi thắng thì load lại game
                 StartCoroutine (GameLoop ());
             }
         }
