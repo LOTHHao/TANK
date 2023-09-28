@@ -1,90 +1,88 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Complete
 {
     public class ShellExplosion : MonoBehaviour
     {
-        public LayerMask m_TankMask;                        // Used to filter what the explosion affects, this should be set to "Players".
-        public ParticleSystem m_ExplosionParticles;         // Reference to the particles that will play on explosion.
-        public AudioSource m_ExplosionAudio;                // Reference to the audio that will play on explosion.
-        public float m_MaxDamage = 100f;                    // The amount of damage done if the explosion is centred on a tank.
-        public float m_ExplosionForce = 1000f;              // The amount of force added to a tank at the centre of the explosion.
-        public float m_MaxLifeTime = 2f;                    // The time in seconds before the shell is removed.
-        public float m_ExplosionRadius = 5f;                // The maximum distance away from the explosion tanks can be and are still affected.
+        public LayerMask m_TankMask;                        // Dùng để kiểm tra ảnh hưởng vụ nổ 
+        public ParticleSystem m_ExplosionParticles;         // Tham chiếu đến hiệu ứng nổ
+        public AudioSource m_ExplosionAudio;                // Tham chiếu đến âm thanh khi nổ
+        public float m_MaxDamage = 100f;                    // Số sát thương tối đa
+        public float m_ExplosionForce = 1000f;              // Lực nổ
+        public float m_MaxLifeTime = 2f;                    // Thời gian tồn tại của đạn
+        public float m_ExplosionRadius = 5f;                // Khoảng cách nổ
 
 
         private void Start ()
         {
-            // If it isn't destroyed by then, destroy the shell after it's lifetime.
+            // Gán thời gian hủy đạn vào khi đã tạo
             Destroy (gameObject, m_MaxLifeTime);
         }
 
 
         private void OnTriggerEnter (Collider other)
         {
-			// Collect all the colliders in a sphere from the shell's current position to a radius of the explosion radius.
+			// Thu thập các va chạm 
             Collider[] colliders = Physics.OverlapSphere (transform.position, m_ExplosionRadius, m_TankMask);
 
-            // Go through all the colliders...
             for (int i = 0; i < colliders.Length; i++)
             {
-                // ... and find their rigidbody.
+                // Tìm Rigidbody của vật đó
                 Rigidbody targetRigidbody = colliders[i].GetComponent<Rigidbody> ();
 
-                // If they don't have a rigidbody, go on to the next collider.
+                // Nếu không có rigibody skip qua
                 if (!targetRigidbody)
                     continue;
 
-                // Add an explosion force.
+                // Thêm lực nổ và bán kính nổ 
                 targetRigidbody.AddExplosionForce (m_ExplosionForce, transform.position, m_ExplosionRadius);
 
-                // Find the TankHealth script associated with the rigidbody.
+                // Tìm component máu của tank
                 TankHealth targetHealth = targetRigidbody.GetComponent<TankHealth> ();
 
-                // If there is no TankHealth script attached to the gameobject, go on to the next collider.
+                // Nếu không có skip qua
                 if (!targetHealth)
                     continue;
 
-                // Calculate the amount of damage the target should take based on it's distance from the shell.
+                // Tính toán sát thương
                 float damage = CalculateDamage (targetRigidbody.position);
 
-                // Deal this damage to the tank.
+                // Nhận sát thương
                 targetHealth.TakeDamage (damage);
             }
 
-            // Unparent the particles from the shell.
             m_ExplosionParticles.transform.parent = null;
 
-            // Play the particle system.
+            // Chạy hiệu ứng nổ
             m_ExplosionParticles.Play();
 
-            // Play the explosion sound effect.
+            // Chạy âm thanh nổ
             m_ExplosionAudio.Play();
 
-            // Once the particles have finished, destroy the gameobject they are on.
+            // Hiệu ưng nổ chạy xong thì hủy 
             ParticleSystem.MainModule mainModule = m_ExplosionParticles.main;
             Destroy (m_ExplosionParticles.gameObject, mainModule.duration);
 
-            // Destroy the shell.
+            // Hủy đạn
             Destroy (gameObject);
         }
 
 
         private float CalculateDamage (Vector3 targetPosition)
         {
-            // Create a vector from the shell to the target.
+            // Tính khoảng cách vụ nổ 
             Vector3 explosionToTarget = targetPosition - transform.position;
 
-            // Calculate the distance from the shell to the target.
+            // Tính khoảng cách đạn đến mục tiêu
             float explosionDistance = explosionToTarget.magnitude;
 
-            // Calculate the proportion of the maximum distance (the explosionRadius) the target is away.
+            // Tính tỷ lệ khoảng cách vụ nổ
             float relativeDistance = (m_ExplosionRadius - explosionDistance) / m_ExplosionRadius;
 
-            // Calculate damage as this proportion of the maximum possible damage.
+            // Tính lượng sát thương
             float damage = relativeDistance * m_MaxDamage;
 
-            // Make sure that the minimum damage is always 0.
+            // Giới hạn sát thương tối thiểu là 0
             damage = Mathf.Max (0f, damage);
 
             return damage;

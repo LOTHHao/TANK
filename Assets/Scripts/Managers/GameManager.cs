@@ -67,7 +67,7 @@ namespace Complete
         }
 
 
-        // Gọi nó khi mỗi lần bắt đầu game
+        // Gọi khi mỗi lần bắt đầu game
         private IEnumerator GameLoop ()
         {
             // Bắt đầu với RoundStarting 
@@ -95,34 +95,33 @@ namespace Complete
 
         private IEnumerator RoundStarting ()
         {
-            // As soon as the round starts reset the tanks and make sure they can't move.
+            // Khi bắt đầu để chắc là tank không di chuyển
             ResetAllTanks ();
             DisableTankControl ();
 
-            // Snap the camera's zoom and position to something appropriate for the reset tanks.
+            // Điều chỉnh Camera
             m_CameraControl.SetStartPositionAndSize ();
 
-            // Increment the round number and display text showing the players what round it is.
+            // Tăng số vòng và hiển thị mỗi khi bắt đầu 
             m_RoundNumber++;
             m_MessageText.text = "ROUND " + m_RoundNumber;
 
-            // Wait for the specified length of time until yielding control back to the game loop.
+            // Thời gian chờ trước khi bắt đầu 
             yield return m_StartWait;
         }
 
 
         private IEnumerator RoundPlaying ()
         {
-            // As soon as the round begins playing let the players control the tanks.
+            // Bật điều khiển tank khi bắt đầu
             EnableTankControl ();
 
-            // Clear the text from the screen.
+            // Xóa Text khỏi màn hình
             m_MessageText.text = string.Empty;
 
-            // While there is not one tank left...
+            // Check điều kiện khi chỉ còn 1 tank
             while (!OneTankLeft())
             {
-                // ... return on the next frame.
                 yield return null;
             }
         }
@@ -130,103 +129,101 @@ namespace Complete
 
         private IEnumerator RoundEnding ()
         {
-            // Stop tanks from moving.
+            // Dừng tank di chuyển 
             DisableTankControl ();
 
-            // Clear the winner from the previous round.
+            // Xóa người chiến thắng từ vòng trước 
             m_RoundWinner = null;
 
-            // See if there is a winner now the round is over.
+            // Gán người chiến thắng của vòng này
             m_RoundWinner = GetRoundWinner ();
 
-            // If there is a winner, increment their score.
+            // Tăng điểm cho người chiến thắng 
             if (m_RoundWinner != null)
                 m_RoundWinner.m_Wins++;
 
-            // Now the winner's score has been incremented, see if someone has one the game.
+            // Kiểm tra xem có ai thắng chưa
             m_GameWinner = GetGameWinner ();
 
-            // Get a message based on the scores and whether or not there is a game winner and display it.
+            // Nhận điểm số và hiển thị nó 
             string message = EndMessage ();
             m_MessageText.text = message;
 
-            // Wait for the specified length of time until yielding control back to the game loop.
+            // Đợi 1 tí trước khi kết thúc
             yield return m_EndWait;
         }
 
 
-        // This is used to check if there is one or fewer tanks remaining and thus the round should end.
+        // Kiểm tra khi còn 1 tank 
         private bool OneTankLeft()
         {
-            // Start the count of tanks left at zero.
+            // Số tank ban đầu 
             int numTanksLeft = 0;
 
-            // Go through all the tanks...
+            // Mỗi tank trên sân sẽ + thêm
             for (int i = 0; i < m_Tanks.Length; i++)
             {
-                // ... and if they are active, increment the counter.
+                // Nếu nó đang hiện hữu + thêm vào biến numTankLeft
                 if (m_Tanks[i].m_Instance.activeSelf)
                     numTanksLeft++;
             }
 
-            // If there are one or fewer tanks remaining return true, otherwise return false.
+            // Nếu còn lại 1 thì trả về true
             return numTanksLeft <= 1;
         }
         
         
-        // This function is to find out if there is a winner of the round.
-        // This function is called with the assumption that 1 or fewer tanks are currently active.
+        // Hàm này được gọi khi còn 1 tank hoạt động 
         private TankManager GetRoundWinner()
         {
-            // Go through all the tanks...
+            // Kiểm tra các tank đang hiện hữu
             for (int i = 0; i < m_Tanks.Length; i++)
             {
-                // ... and if one of them is active, it is the winner so return it.
+                // Kiểm tra tank còn lại
                 if (m_Tanks[i].m_Instance.activeSelf)
                     return m_Tanks[i];
             }
 
-            // If none of the tanks are active it is a draw so return null.
+            // Nếu không có xe nào hoạt động thì đó trả về 1 trận hòa 
             return null;
         }
 
 
-        // This function is to find out if there is a winner of the game.
+        // Kiểm tra tank chiến thắng
         private TankManager GetGameWinner()
         {
-            // Go through all the tanks...
+            // Kiểm tra các tank
             for (int i = 0; i < m_Tanks.Length; i++)
             {
-                // ... and if one of them has enough rounds to win the game, return it.
+                // Trả lại tank chiến thắng khi đủ số vòng thắng
                 if (m_Tanks[i].m_Wins == m_NumRoundsToWin)
                     return m_Tanks[i];
             }
 
-            // If no tanks have enough rounds to win, return null.
+            // Nếu không có tank nào chiến thăng thì trả về null
             return null;
         }
 
 
-        // Returns a string message to display at the end of each round.
+        // Nội dung hiển thị ở mỗi cuối vòng 
         private string EndMessage()
         {
-            // By default when a round ends there are no winners so the default end message is a draw.
+            // Mặc định ban đầu nếu không có ai thắng thì sẽ là hòa
             string message = "DRAW!";
 
-            // If there is a winner then change the message to reflect that.
+            // Hiển thị người chiến thắng
             if (m_RoundWinner != null)
                 message = m_RoundWinner.m_ColoredPlayerText + " WINS THE ROUND!";
 
-            // Add some line breaks after the initial message.
             message += "\n\n\n\n";
 
-            // Go through all the tanks and add each of their scores to the message.
+            // Hiển thị số lần thắng của mỗi tank
             for (int i = 0; i < m_Tanks.Length; i++)
             {
                 message += m_Tanks[i].m_ColoredPlayerText + ": " + m_Tanks[i].m_Wins + " WINS\n";
             }
 
-            // If there is a game winner, change the entire message to reflect that.
+            // Nếu có người chiến thắng thì hiển thị người đó
             if (m_GameWinner != null)
                 message = m_GameWinner.m_ColoredPlayerText + " WINS THE GAME!";
 
@@ -234,7 +231,7 @@ namespace Complete
         }
 
 
-        // This function is used to turn all the tanks back on and reset their positions and properties.
+        // Đặt lại vị trí của tank
         private void ResetAllTanks()
         {
             for (int i = 0; i < m_Tanks.Length; i++)
